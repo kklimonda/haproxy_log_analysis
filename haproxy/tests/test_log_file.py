@@ -38,12 +38,12 @@ def test_start_and_end_attributes(start_str, start_obj, delta, end_obj):
 @pytest.mark.parametrize(
     'accept_date', ['09/Dec/2013:12:59:46.633', None],
 )
-def test_lines_validity(tmp_path, line_factory, accept_date):
+def test_lines_validity(tmp_path, http_line_factory, accept_date):
     """Check that lines are either counted as valid or invalid."""
     file_path = tmp_path / 'haproxy.log'
     line = ''
     if accept_date:
-        line = line_factory(accept_date=accept_date).raw_line
+        line = http_line_factory(accept_date=accept_date).raw_line
     with open(file_path, 'w') as file_obj:
         file_obj.write(f'{line}\n')
     log_file = Log(file_path)
@@ -73,12 +73,12 @@ def test_lines_validity(tmp_path, line_factory, accept_date):
         ('09/Dec/2013:12:59:46.633', '08/Dec/2013', '3d', True),
     ],
 )
-def test_returned_lines(tmp_path, line_factory, accept_date, start, delta, is_valid):
+def test_returned_lines(tmp_path, http_line_factory, accept_date, start, delta, is_valid):
     """Check that lines are only returned if they are valid AND within the time frame."""
     file_path = tmp_path / 'haproxy.log'
     line = ''
     if accept_date:
-        line = line_factory(accept_date=accept_date).raw_line
+        line = http_line_factory(accept_date=accept_date).raw_line
     with open(file_path, 'w') as file_obj:
         file_obj.write(f'{line}\n')
     log_file = Log(file_path, start=start, delta=delta)
@@ -98,17 +98,20 @@ def test_total_lines():
 @pytest.mark.parametrize(
     'client_port', ['90', 'random-value-that-breaks'],
 )
-def test_print_invalid_lines(tmp_path, line_factory, client_port, capsys):
+def test_print_invalid_lines(tmp_path, http_line_factory, client_port, capsys):
     """Check that invalid lines are printed, if asked to do so."""
     file_path = tmp_path / 'haproxy.log'
-    line = line_factory(client_port=client_port).raw_line
+    line = http_line_factory(client_port=client_port).raw_line
     with open(file_path, 'w') as file_obj:
         file_obj.write(f'{line}\n')
     log_file = Log(file_path, show_invalid=True)
     _ = [x for x in log_file]
 
     output = capsys.readouterr().out
+    # client port is stored after <client_ip>: so make sure
+    # we match :<client_port> instead of just <client_port> which
+    # can be part of a string by itself.
     if log_file.valid_lines == 1:
-        assert client_port not in output
+        assert ":"+client_port not in output
     else:
-        assert client_port in output
+        assert ":"+client_port in output

@@ -56,7 +56,7 @@ def test_counter_output(capsys, output):
     check_output(cmd, output, 3, capsys)
 
 
-def test_http_methods_results(line_factory):
+def test_http_methods_results(http_line_factory):
     """Test the HTTPMethods command.
 
     It creates a breakdown of how many times each HTTP verb has been used.
@@ -64,7 +64,7 @@ def test_http_methods_results(line_factory):
     cmd = commands.HttpMethods()
     assert cmd.raw_results() == {}
     for verb, count in (('POST', 4), ('GET', 3), ('PUT', 2)):
-        line = line_factory(http_request=f'{verb} /path/to/image HTTP/1.1')
+        line = http_line_factory(http_request=f'{verb} /path/to/image HTTP/1.1')
         for x in range(count):
             cmd(line)
     results = cmd.raw_results()
@@ -78,20 +78,20 @@ def test_http_methods_results(line_factory):
     'output, expected',
     [(None, '- PUT: 2\n- GET: 1'), ('json', '[{"PUT": 2}, {"GET": 1}]'),],
 )
-def test_http_methods_output(line_factory, capsys, output, expected):
+def test_http_methods_output(http_line_factory, capsys, output, expected):
     """Test the HTTPMethods command.
 
     It creates a breakdown of how many times each HTTP verb has been used.
     """
     cmd = commands.HttpMethods()
     for verb, count in (('GET', 1), ('PUT', 2)):
-        line = line_factory(http_request=f'{verb} /path/to/image HTTP/1.1')
+        line = http_line_factory(http_request=f'{verb} /path/to/image HTTP/1.1')
         for x in range(count):
             cmd(line)
     check_output(cmd, output, expected, capsys)
 
 
-def test_ip_counter_results(line_factory):
+def test_ip_counter_results(http_line_factory):
     """Test the IpCounter command.
 
     It creates a breakdown of how many times each IP has been used.
@@ -99,7 +99,7 @@ def test_ip_counter_results(line_factory):
     cmd = commands.IpCounter()
     assert cmd.raw_results() == {}
     for ip, count in (('192.168.0.1', 4), ('172.4.3.2', 3), ('8.7.6.5', 2)):
-        line = line_factory(headers=f' {{{ip}}}')
+        line = http_line_factory(headers=f' {{{ip}}}')
         for x in range(count):
             cmd(line)
     results = cmd.raw_results()
@@ -116,20 +116,20 @@ def test_ip_counter_results(line_factory):
         ('json', '[{"172.4.3.2": 3}, {"8.7.6.5": 2}]'),
     ],
 )
-def test_ip_counter_output(line_factory, capsys, output, expected):
+def test_ip_counter_output(http_line_factory, capsys, output, expected):
     """Test the IpCounter command.
 
     It creates a breakdown of how many times each IP has been used.
     """
     cmd = commands.IpCounter()
     for ip, count in (('172.4.3.2', 3), ('8.7.6.5', 2)):
-        line = line_factory(headers=f' {{{ip}}}')
+        line = http_line_factory(headers=f' {{{ip}}}')
         for x in range(count):
             cmd(line)
     check_output(cmd, output, expected, capsys)
 
 
-def test_top_ips_results(line_factory):
+def test_top_ips_results(http_line_factory):
     """Test the TopIps command.
 
     It lists the 10 most used IPs, and how much where they used.
@@ -137,7 +137,7 @@ def test_top_ips_results(line_factory):
     cmd = commands.TopIps()
     assert cmd.raw_results() == []
     for ip, count in ((f'192.168.0.{x}', x) for x in range(11)):
-        line = line_factory(headers=f' {{{ip}}}')
+        line = http_line_factory(headers=f' {{{ip}}}')
         for x in range(count):
             cmd(line)
     results = cmd.raw_results()
@@ -161,7 +161,7 @@ def test_top_ips_results(line_factory):
         ('json', '[{"192.168.0.2": 2}, {"192.168.0.1": 1}]'),
     ],
 )
-def test_top_ips_output(line_factory, capsys, output, expected):
+def test_top_ips_output(http_line_factory, capsys, output, expected):
     """Test the TopIps command.
 
     It lists the 10 most used IPs, and how much where they used.
@@ -169,13 +169,13 @@ def test_top_ips_output(line_factory, capsys, output, expected):
     cmd = commands.TopIps()
     assert cmd.raw_results() == []
     for ip, count in ((f'192.168.0.{x}', x) for x in range(3)):
-        line = line_factory(headers=f' {{{ip}}}')
+        line = http_line_factory(headers=f' {{{ip}}}')
         for x in range(count):
             cmd(line)
     check_output(cmd, output, expected, capsys)
 
 
-def test_status_codes_counter_results(line_factory):
+def test_status_codes_counter_results(http_line_factory):
     """Test the StatusCodesCounter command.
 
     It creates a breakdown of which status codes have been used and how many each.
@@ -183,7 +183,7 @@ def test_status_codes_counter_results(line_factory):
     cmd = commands.StatusCodesCounter()
     assert cmd.raw_results() == {}
     for status_code, count in (('200', 4), ('301', 3), ('500', 2)):
-        line = line_factory(status=status_code)
+        line = http_line_factory(http_status_code=status_code)
         for x in range(count):
             cmd(line)
     results = cmd.raw_results()
@@ -197,20 +197,20 @@ def test_status_codes_counter_results(line_factory):
     'output, expected',
     [(None, '- 301: 3\n- 500: 2'), ('json', '[{"301": 3}, {"500": 2}]'),],
 )
-def test_status_codes_counter_output(line_factory, capsys, output, expected):
+def test_status_codes_counter_output(http_line_factory, capsys, output, expected):
     """Test the StatusCodesCounter command.
 
     It creates a breakdown of which status codes have been used and how many each.
     """
     cmd = commands.StatusCodesCounter()
     for status_code, count in (('301', 3), ('500', 2)):
-        line = line_factory(status=status_code)
+        line = http_line_factory(http_status_code=status_code)
         for x in range(count):
             cmd(line)
     check_output(cmd, output, expected, capsys)
 
 
-def test_request_path_counter_results(line_factory):
+def test_request_path_counter_results(http_line_factory):
     """Test the RequestPathCounter command.
 
     It creates a breakdown of how many times each URL path has been used.
@@ -218,7 +218,7 @@ def test_request_path_counter_results(line_factory):
     cmd = commands.RequestPathCounter()
     assert cmd.raw_results() == {}
     for path, count in (('/image/one', 4), ('/video/two', 3), ('/article/three', 2)):
-        line = line_factory(http_request=f'GET {path} HTTP/1.1')
+        line = http_line_factory(http_request=f'GET {path} HTTP/1.1')
         for x in range(count):
             cmd(line)
     results = cmd.raw_results()
@@ -235,20 +235,20 @@ def test_request_path_counter_results(line_factory):
         ('json', '[{"/video/two": 3}, {"/article/three": 2}]'),
     ],
 )
-def test_request_path_counter_output(line_factory, capsys, output, expected):
+def test_request_path_counter_output(http_line_factory, capsys, output, expected):
     """Test the RequestPathCounter command.
 
     It creates a breakdown of how many times each URL path has been used.
     """
     cmd = commands.RequestPathCounter()
     for path, count in (('/video/two', 3), ('/article/three', 2)):
-        line = line_factory(http_request=f'GET {path} HTTP/1.1')
+        line = http_line_factory(http_request=f'GET {path} HTTP/1.1')
         for x in range(count):
             cmd(line)
     check_output(cmd, output, expected, capsys)
 
 
-def test_slow_requests_results(line_factory):
+def test_slow_requests_results(http_line_factory):
     """Test the SlowRequests command.
 
     It lists all requests that took more than 1000 milliseconds to respond.
@@ -256,7 +256,7 @@ def test_slow_requests_results(line_factory):
     cmd = commands.SlowRequests()
     assert cmd.raw_results() == []
     for total_time in (1003, 987, 456, 2013, 45000, 1000, 3200, 999):
-        cmd(line_factory(tr=total_time))
+        cmd(http_line_factory(Tr=total_time))
     results = cmd.raw_results()
     assert results == [1000, 1003, 2013, 3200, 45000]
 
@@ -268,18 +268,18 @@ def test_slow_requests_results(line_factory):
         ('json', '[1000, 1003, 2013, 3200, 45000]'),
     ],
 )
-def test_slow_requests_output(line_factory, capsys, output, expected):
+def test_slow_requests_output(http_line_factory, capsys, output, expected):
     """Test the SlowRequests command.
 
     It lists all requests that took more than 1000 milliseconds to respond.
     """
     cmd = commands.SlowRequests()
     for total_time in (1003, 987, 456, 2013, 45000, 1000, 3200, 999):
-        cmd(line_factory(tr=total_time))
+        cmd(http_line_factory(Tr=total_time))
     check_output(cmd, output, expected, capsys)
 
 
-def test_top_request_paths_results(line_factory):
+def test_top_request_paths_results(http_line_factory):
     """Test the TopRequestPaths command.
 
     It lists the 10 most used URL paths, and how much where they used.
@@ -287,7 +287,7 @@ def test_top_request_paths_results(line_factory):
     cmd = commands.TopRequestPaths()
     assert cmd.raw_results() == []
     for path, count in ((f'/file/{x}', x) for x in range(11)):
-        line = line_factory(http_request=f'GET {path} HTTP/1.1')
+        line = http_line_factory(http_request=f'GET {path} HTTP/1.1')
         for x in range(count):
             cmd(line)
     results = cmd.raw_results()
@@ -311,20 +311,20 @@ def test_top_request_paths_results(line_factory):
         ('json', '[{"/file/2": 2}, {"/file/1": 1}]'),
     ],
 )
-def test_top_request_paths_output(line_factory, capsys, output, expected):
+def test_top_request_paths_output(http_line_factory, capsys, output, expected):
     """Test the TopRequestPaths command.
 
     It lists the 10 most used URL paths, and how much where they used.
     """
     cmd = commands.TopRequestPaths()
     for path, count in ((f'/file/{x}', x) for x in range(3)):
-        line = line_factory(http_request=f'GET {path} HTTP/1.1')
+        line = http_line_factory(http_request=f'GET {path} HTTP/1.1')
         for x in range(count):
             cmd(line)
     check_output(cmd, output, expected, capsys)
 
 
-def test_slow_requests_counter_results(line_factory):
+def test_slow_requests_counter_results(http_line_factory):
     """Test the SlowRequestsCounter command.
 
     It counts how many requests took more than 1000 milliseconds to complete.
@@ -332,7 +332,7 @@ def test_slow_requests_counter_results(line_factory):
     cmd = commands.SlowRequestsCounter()
     assert cmd.raw_results() == 0
     for total_time in (1003, 987, 456, 2013, 45000, 1000, 3200, 999):
-        cmd(line_factory(tr=total_time))
+        cmd(http_line_factory(Tr=total_time))
     results = cmd.raw_results()
     assert results == 5
 
@@ -340,14 +340,14 @@ def test_slow_requests_counter_results(line_factory):
 @pytest.mark.parametrize(
     'output', [None, 'json',],
 )
-def test_slow_requests_counter_output(line_factory, capsys, output):
+def test_slow_requests_counter_output(http_line_factory, capsys, output):
     """Test the SlowRequestsCounter command.
 
     It counts how many requests took more than 1000 milliseconds to complete.
     """
     cmd = commands.SlowRequestsCounter()
     for total_time in (1003, 987, 456, 2013, 45000, 1000, 3200, 999):
-        cmd(line_factory(tr=total_time))
+        cmd(http_line_factory(Tr=total_time))
     check_output(cmd, output, 5, capsys)
 
 
@@ -359,7 +359,7 @@ def test_slow_requests_counter_output(line_factory, capsys, output):
         ((45, 30, 0,), 25),  # responses that take 0 milliseconds are still counted
     ],
 )
-def test_average_response_time_results(line_factory, series, average):
+def test_average_response_time_results(http_line_factory, series, average):
     """Test the AverageResponseTime command.
 
     Returns the average response time of all valid requests.
@@ -367,13 +367,13 @@ def test_average_response_time_results(line_factory, series, average):
     cmd = commands.AverageResponseTime()
     assert cmd.raw_results() == 0.0
     for total_time in series:
-        cmd(line_factory(tr=total_time))
+        cmd(http_line_factory(Tr=total_time))
     results = cmd.raw_results()
     assert results == average
 
 
 @pytest.mark.parametrize('output', [None, 'json',])
-def test_average_response_time_output(line_factory, capsys, output):
+def test_average_response_time_output(http_line_factory, capsys, output):
     """Test the AverageResponseTime command.
 
     Returns the average response time of all valid requests.
@@ -383,7 +383,7 @@ def test_average_response_time_output(line_factory, capsys, output):
         40,
         30,
     ):
-        cmd(line_factory(tr=total_time))
+        cmd(http_line_factory(Tr=total_time))
     check_output(cmd, output, 35.0, capsys)
 
 
@@ -395,7 +395,7 @@ def test_average_response_time_output(line_factory, capsys, output):
         ((45, 30, 0,), 25),  # requests that do not wait at all are still counted
     ],
 )
-def test_average_waiting_time_results(line_factory, series, average):
+def test_average_waiting_time_results(http_line_factory, series, average):
     """Test the AverageWaitingTime command.
 
     Returns the average time requests had to wait to get processed.
@@ -403,24 +403,24 @@ def test_average_waiting_time_results(line_factory, series, average):
     cmd = commands.AverageWaitingTime()
     assert cmd.raw_results() == 0.0
     for wait_time in series:
-        cmd(line_factory(tw=wait_time))
+        cmd(http_line_factory(Tw=wait_time))
     results = cmd.raw_results()
     assert results == average
 
 
 @pytest.mark.parametrize('output', [None, 'json',])
-def test_average_waiting_time_output(line_factory, capsys, output):
+def test_average_waiting_time_output(http_line_factory, capsys, output):
     """Test the AverageWaitingTime command.
 
     Returns the average time requests had to wait to get processed.
     """
     cmd = commands.AverageWaitingTime()
     for wait_time in (40, 30):
-        cmd(line_factory(tw=wait_time))
+        cmd(http_line_factory(Tw=wait_time))
     check_output(cmd, output, 35.0, capsys)
 
 
-def test_server_load_results(line_factory):
+def test_server_load_results(http_line_factory):
     """Test the ServerLoad command.
 
     It creates a breakdown of how many requests each server processed.
@@ -428,7 +428,7 @@ def test_server_load_results(line_factory):
     cmd = commands.ServerLoad()
     assert cmd.raw_results() == {}
     for name, count in (('server4', 4), ('server3', 3), ('server5', 5)):
-        line = line_factory(server_name=name)
+        line = http_line_factory(http_server_name=name)
         for x in range(count):
             cmd(line)
     results = cmd.raw_results()
@@ -445,20 +445,20 @@ def test_server_load_results(line_factory):
         ('json', '[{"server5": 5}, {"server3": 3}]'),
     ],
 )
-def test_server_load_output(line_factory, capsys, output, expected):
+def test_server_load_output(http_line_factory, capsys, output, expected):
     """Test the ServerLoad command.
 
     It creates a breakdown of how many requests each server processed.
     """
     cmd = commands.ServerLoad()
     for name, count in (('server3', 3), ('server5', 5)):
-        line = line_factory(server_name=name)
+        line = http_line_factory(http_server_name=name)
         for x in range(count):
             cmd(line)
     check_output(cmd, output, expected, capsys)
 
 
-def test_queue_peaks_no_lines_results(line_factory):
+def test_queue_peaks_no_lines_results(http_line_factory):
     """Test the QueuePeaks command.
 
     If there are no log lines processed, nothing should be returned.
@@ -467,7 +467,7 @@ def test_queue_peaks_no_lines_results(line_factory):
     assert cmd.raw_results() == []
 
 
-def test_queue_peaks_no_queues(line_factory):
+def test_queue_peaks_no_queues(http_line_factory):
     """Test the QueuePeaks command.
 
     If there are no log lines processed, nothing should be returned.
@@ -476,7 +476,7 @@ def test_queue_peaks_no_queues(line_factory):
     now = datetime.now()
     for second in range(4):
         accept_date = now.replace(second=second).strftime('%d/%b/%Y:%H:%M:%S.%f')
-        cmd(line_factory(queue_backend=0, accept_date=accept_date))
+        cmd(http_line_factory(backend_queue=0, accept_date=accept_date))
     assert len(cmd.requests) == 4
     assert cmd.raw_results() == []
 
@@ -489,13 +489,13 @@ def test_queue_peaks_no_queues(line_factory):
         ('15/Jan/2017:05:23:05.0', 1484454185.0),
     ],
 )
-def test_queue_peaks_generated_keys(line_factory, date, expected_key):
+def test_queue_peaks_generated_keys(http_line_factory, date, expected_key):
     """Test the QueuePeaks command.
 
     Check how the keys for the requests dictionary are generated.
     """
     cmd = commands.QueuePeaks()
-    cmd(line_factory(queue_backend=0, accept_date=date))
+    cmd(http_line_factory(queue_backend=0, accept_date=date))
     keys = list(cmd.requests.keys())
     # account for a 1h difference, if UTC is used (as in travis)
     assert expected_key - 4000 <= keys[0] <= expected_key + 4000
@@ -503,15 +503,15 @@ def test_queue_peaks_generated_keys(line_factory, date, expected_key):
     assert expected_key - int(expected_key) == keys[0] - int(keys[0])
 
 
-def test_queue_peaks_details(line_factory):
+def test_queue_peaks_details(http_line_factory):
     """Test the QueuePeaks command.
 
     Check the information returned for each peak.
     """
     cmd = commands.QueuePeaks()
     for microseconds, queue in enumerate([0, 4, 7, 8, 19, 4, 0]):
-        line = line_factory(
-            queue_backend=queue, accept_date=f'15/Jan/2017:05:23:05.{microseconds}'
+        line = http_line_factory(
+            backend_queue=queue, accept_date=f'15/Jan/2017:05:23:05.{microseconds}'
         )
         cmd(line)
     day = datetime(year=2017, month=1, day=15, hour=5, minute=23, second=5)
@@ -524,15 +524,15 @@ def test_queue_peaks_details(line_factory):
     assert peak_info['finished'] == day.replace(microsecond=600000)
 
 
-def test_queue_peaks_multiple_sorted(line_factory):
+def test_queue_peaks_multiple_sorted(http_line_factory):
     """Test the QueuePeaks command.
 
     Peaks information are returned sorted by date.
     """
     cmd = commands.QueuePeaks()
     for microseconds, queue in enumerate([0, 4, 0, 0, 19, 4, 0]):
-        line = line_factory(
-            queue_backend=queue, accept_date=f'15/Jan/2017:05:23:05.{microseconds}'
+        line = http_line_factory(
+            backend_queue=queue, accept_date=f'15/Jan/2017:05:23:05.{microseconds}'
         )
         cmd(line)
     day = datetime(year=2017, month=1, day=15, hour=5, minute=23, second=5)
@@ -544,15 +544,15 @@ def test_queue_peaks_multiple_sorted(line_factory):
     assert results[1]['started'] == day.replace(microsecond=400000)
 
 
-def test_queue_peaks_already_started(line_factory):
+def test_queue_peaks_already_started(http_line_factory):
     """Test the QueuePeaks command.
 
     Check that QueuePeaks handles the corner case of a peak that has already started.
     """
     cmd = commands.QueuePeaks()
     for microseconds, queue in enumerate([4, 19, 0]):
-        line = line_factory(
-            queue_backend=queue, accept_date=f'15/Jan/2017:05:23:05.{microseconds}'
+        line = http_line_factory(
+            backend_queue=queue, accept_date=f'15/Jan/2017:05:23:05.{microseconds}'
         )
         cmd(line)
     day = datetime(year=2017, month=1, day=15, hour=5, minute=23, second=5)
@@ -565,15 +565,15 @@ def test_queue_peaks_already_started(line_factory):
     assert peak_info['finished'] == day.replace(microsecond=200000)
 
 
-def test_queue_peaks_did_not_finish(line_factory):
+def test_queue_peaks_did_not_finish(http_line_factory):
     """Test the QueuePeaks command.
 
     Check that QueuePeaks handles the corner case of a peak that does not finish.
     """
     cmd = commands.QueuePeaks()
     for microseconds, queue in enumerate([4, 19, 12]):
-        line = line_factory(
-            queue_backend=queue, accept_date=f'15/Jan/2017:05:23:05.{microseconds}'
+        line = http_line_factory(
+            backend_queue=queue, accept_date=f'15/Jan/2017:05:23:05.{microseconds}'
         )
         cmd(line)
     day = datetime(year=2017, month=1, day=15, hour=5, minute=23, second=5)
@@ -601,21 +601,21 @@ def test_queue_peaks_did_not_finish(line_factory):
         ),
     ],
 )
-def test_queue_peaks_output(line_factory, capsys, output, expected):
+def test_queue_peaks_output(http_line_factory, capsys, output, expected):
     """Test the QueuePeaks command.
 
     Peaks information are returned sorted by date.
     """
     cmd = commands.QueuePeaks()
     for microseconds, queue in enumerate([0, 4, 0, 0, 19, 4, 0]):
-        line = line_factory(
-            queue_backend=queue, accept_date=f'15/Jan/2017:05:23:05.{microseconds}'
+        line = http_line_factory(
+            backend_queue=queue, accept_date=f'15/Jan/2017:05:23:05.{microseconds}'
         )
         cmd(line)
     check_output(cmd, output, expected, capsys)
 
 
-def test_connection_type_results(line_factory):
+def test_connection_type_results(http_line_factory):
     """Test the ConnectionType command.
 
     It counts how many requests have been made by SSL, and which ones not.
@@ -623,7 +623,7 @@ def test_connection_type_results(line_factory):
     cmd = commands.ConnectionType()
     assert cmd.raw_results() == (0, 0)
     for path, count in (('/Virtual:443/something', 4), ('/something', 2)):
-        line = line_factory(http_request=f'GET {path} HTTP/1.1')
+        line = http_line_factory(http_request=f'GET {path} HTTP/1.1')
         for x in range(count):
             cmd(line)
     assert cmd.raw_results() == (4, 2)
@@ -633,20 +633,20 @@ def test_connection_type_results(line_factory):
     'output, expected',
     [(None, '- https: 4\n- http: 2'), ('json', '[{"https": 4}, {"http": 2}]'),],
 )
-def test_connection_type_output(line_factory, capsys, output, expected):
+def test_connection_type_output(http_line_factory, capsys, output, expected):
     """Test the ConnectionType command.
 
     It counts how many requests have been made by SSL, and which ones not.
     """
     cmd = commands.ConnectionType()
     for path, count in (('/Virtual:443/something', 4), ('/something', 2)):
-        line = line_factory(http_request=f'GET {path} HTTP/1.1')
+        line = http_line_factory(http_request=f'GET {path} HTTP/1.1')
         for x in range(count):
             cmd(line)
     check_output(cmd, output, expected, capsys)
 
 
-def test_requests_per_minute_results(line_factory):
+def test_requests_per_minute_results(http_line_factory):
     """Test the RequestsPerMinute command.
 
     It counts how many requests have been made per minute.
@@ -672,7 +672,7 @@ def test_requests_per_minute_results(line_factory):
         now - hours,
     ]
     for time in dates:
-        cmd(line_factory(accept_date=f'{time:%d/%b/%Y:%H:%M:%S.%f}'))
+        cmd(http_line_factory(accept_date=f'{time:%d/%b/%Y:%H:%M:%S.%f}'))
     results = cmd.raw_results()
     assert len(results) == 5
     assert results[0][1] == 1
@@ -685,7 +685,7 @@ def test_requests_per_minute_results(line_factory):
 @pytest.mark.parametrize(
     'output', [None, 'json',],
 )
-def test_requests_per_minute_output(line_factory, capsys, output):
+def test_requests_per_minute_output(http_line_factory, capsys, output):
     """Test the RequestsPerMinute command.
 
     It counts how many requests have been made per minute.
@@ -693,7 +693,7 @@ def test_requests_per_minute_output(line_factory, capsys, output):
     cmd = commands.RequestsPerMinute()
     now = datetime.now()
     for time in (now, now + timedelta(hours=2)):
-        cmd(line_factory(accept_date=f'{time:%d/%b/%Y:%H:%M:%S.%f}'))
+        cmd(http_line_factory(accept_date=f'{time:%d/%b/%Y:%H:%M:%S.%f}'))
     name = cmd.command_line_name().upper()
     cmd.results(output=output)
     output_text = capsys.readouterr().out
@@ -708,7 +708,7 @@ def test_requests_per_minute_output(line_factory, capsys, output):
         assert ':00: 1\n- ' in output_text
 
 
-def test_requests_per_hour_results(line_factory):
+def test_requests_per_hour_results(http_line_factory):
     """Test the RequestsPerHour command.
 
     It counts how many requests have been made per hour.
@@ -730,7 +730,7 @@ def test_requests_per_hour_results(line_factory):
         now - hours * 2,
     ]
     for time in dates:
-        cmd(line_factory(accept_date=f'{time:%d/%b/%Y:%H:%M:%S.%f}'))
+        cmd(http_line_factory(accept_date=f'{time:%d/%b/%Y:%H:%M:%S.%f}'))
     results = cmd.raw_results()
     assert len(results) == 5
     assert results[0][1] == 1
@@ -743,7 +743,7 @@ def test_requests_per_hour_results(line_factory):
 @pytest.mark.parametrize(
     'output', [None, 'json',],
 )
-def test_requests_per_hour_output(line_factory, capsys, output):
+def test_requests_per_hour_output(http_line_factory, capsys, output):
     """Test the RequestsPerHour command.
 
     It counts how many requests have been made per hour.
@@ -751,7 +751,7 @@ def test_requests_per_hour_output(line_factory, capsys, output):
     cmd = commands.RequestsPerHour()
     now = datetime.now()
     for time in (now, now + timedelta(hours=2)):
-        cmd(line_factory(accept_date=f'{time:%d/%b/%Y:%H:%M:%S.%f}'))
+        cmd(http_line_factory(accept_date=f'{time:%d/%b/%Y:%H:%M:%S.%f}'))
     name = cmd.command_line_name().upper()
     cmd.results(output=output)
     output_text = capsys.readouterr().out
@@ -766,7 +766,7 @@ def test_requests_per_hour_output(line_factory, capsys, output):
         assert ':00: 1\n- ' in output_text
 
 
-def test_print_results_and_output(line_factory, capsys):
+def test_print_results_and_output(http_line_factory, capsys):
     """Test the Print command.
 
     It simply prints the verbatim line.
@@ -774,7 +774,7 @@ def test_print_results_and_output(line_factory, capsys):
     cmd = commands.Print()
     assert cmd.raw_results() is None
     for path in ('/first-thing-to-do', '/second/thing/to-do'):
-        cmd(line_factory(http_request=f'GET {path} HTTP/1.1'))
+        cmd(http_line_factory(http_request=f'GET {path} HTTP/1.1'))
     assert cmd.raw_results() is None
     output_text = capsys.readouterr().out
     lines = output_text.split('\n')

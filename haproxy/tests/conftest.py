@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from copy import deepcopy
 from haproxy.line import Line
+from haproxy.line import LineType
 
 import pytest
 
@@ -11,31 +12,37 @@ DEFAULT_DATA = {
     'client_ip': '127.0.0.1',
     'client_port': 2345,
     'accept_date': '09/Dec/2013:12:59:46.633',
-    'frontend_name': 'loadbalancer',
-    'backend_name': 'default',
-    'server_name': 'instance8',
-    'tq': 0,
-    'tw': 51536,
-    'tc': 1,
-    'tr': 48082,
-    'tt': '99627',
-    'status': '200',
-    'bytes': '83285',
-    'act': '87',
-    'fe': '89',
-    'be': '98',
-    'srv': '1',
+    'http_frontend_name': 'loadbalancer',
+    'http_backend_name': 'default',
+    'http_server_name': 'instance8',
+    'tcp_frontend_name': 'loadbalancer',
+    'tcp_backend_name': 'default',
+    'tcp_server_name': 'instance8',
+    'Tq': 0,
+    'Tw': 51536,
+    'Tc': 1,
+    'Tr': 48082,
+    'Ta': '99627',
+    'Tt': '302045',
+    'http_status_code': '200',
+    'http_bytes_read': '83285',
+    'tcp_bytes_read': '18923',
+    'actconn': '87',
+    'feconn': '89',
+    'beconn': '98',
+    'srv_conn': '1',
     'retries': '20',
-    'queue_server': 2,
-    'queue_backend': 67,
+    'srv_queue': 2,
+    'backend_queue': 67,
     'headers': ' {77.24.148.74}',
     'http_request': 'GET /path/to/image HTTP/1.1',
 }
 
 
 class LinesGenerator:
-    def __init__(self, line_format):
+    def __init__(self, line_type=LineType.HTTP, line_format=None):
         self.data = deepcopy(DEFAULT_DATA)
+        self.line_type = line_type
         self.line_format = line_format
 
     def __call__(self, *args, **kwargs):
@@ -44,14 +51,19 @@ class LinesGenerator:
             **self.data
         )
         self.data[
-            'server_names'
-        ] = '{frontend_name} {backend_name}/{server_name}'.format(**self.data)
-        self.data['timers'] = '{tq}/{tw}/{tc}/{tr}/{tt}'.format(**self.data)
-        self.data['status_and_bytes'] = '{status} {bytes}'.format(**self.data)
-        self.data['connections_and_retries'] = '{act}/{fe}/{be}/{srv}/{retries}'.format(
+            'http_server_names'
+        ] = '{http_frontend_name} {http_backend_name}/{http_server_name}'.format(**self.data)
+        self.data[
+            'tcp_server_names'
+        ] = '{tcp_frontend_name} {tcp_backend_name}/{tcp_server_name}'.format(**self.data)
+        self.data['http_timers'] = '{Tq}/{Tw}/{Tc}/{Tr}/{Ta}'.format(**self.data)
+        self.data['tcp_timers'] = '{Tw}/{Tc}/{Tt}'.format(**self.data)
+        self.data['http_status_and_bytes'] = '{http_status_code} {http_bytes_read}'.format(**self.data)
+        self.data['tcp_bytes_read'] = self.data['tcp_bytes_read']
+        self.data['connections_and_retries'] = '{actconn}/{feconn}/{beconn}/{srv_conn}/{retries}'.format(
             **self.data
         )
-        self.data['queues'] = '{queue_server}/{queue_backend}'.format(**self.data)
+        self.data['queues'] = '{srv_queue}/{backend_queue}'.format(**self.data)
 
         log_line = self.line_format.format(**self.data)
         return Line(log_line)
@@ -63,15 +75,26 @@ def default_line_data():
 
 
 @pytest.fixture
-def line_factory():
+def http_line_factory():
     # queues and headers parameters are together because if no headers are
     # saved the field is completely empty and thus there is no double space
     # between queue backend and http request.
     raw_line = (
         '{syslog_date} {process_name_and_pid} {client_ip_and_port} '
-        '[{accept_date}] {server_names} {timers} {status_and_bytes} '
+        '[{accept_date}] {http_server_names} {http_timers} {http_status_and_bytes} '
         '- - ---- {connections_and_retries} {queues}{headers} '
         '"{http_request}"'
     )
-    generator = LinesGenerator(raw_line)
+    generator = LinesGenerator(line_format=raw_line)
+    return generator
+
+
+@pytest.fixture
+def tcp_line_factory():
+    raw_line = (
+        '{syslog_date} {process_name_and_pid} {client_ip_and_port} '
+        '[{accept_date}] {tcp_server_names} {tcp_timers} {tcp_bytes_read} '
+        '-- {connections_and_retries} {queues}'
+    )
+    generator = LinesGenerator(line_format=raw_line)
     return generator
