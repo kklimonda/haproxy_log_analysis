@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime
 
+import enum
 import re
 
 
@@ -20,24 +21,34 @@ HAPROXY_LINE_REGEX = re.compile(
     r'(?P<client_ip>[a-fA-F\d+\.:]+):(?P<client_port>\d+)\s+'
     # [09/Dec/2013:12:59:46.633]
     r'\[(?P<accept_date>.+)\]\s+'
-    # loadbalancer default/instance8
-    r'(?P<frontend_name>.*)\s+(?P<backend_name>.*)/(?P<server_name>.*)\s+'
+    # Match both HTTP and TCP log formats
+    r'('
+    # frontend backend/server1
+    # FIXME: extra () ?
+    r'((?P<http_frontend_name>.*)\s+(?P<http_backend_name>.*)\/(?P<http_server_name>.*)\s+'
     # 0/51536/1/48082/99627
-    r'(?P<tq>-?\d+)/(?P<tw>-?\d+)/(?P<tc>-?\d+)/'
-    r'(?P<tr>-?\d+)/(?P<tt>\+?\d+)\s+'
-    # 200 83285
-    r'(?P<status_code>-?\d+)\s+(?P<bytes_read>\+?\d+)\s+'
-    # - - ----
-    r'.*\s+'  # ignored by now, should capture cookies and termination state
-    # 87/87/87/1/0
-    r'(?P<act>\d+)/(?P<fe>\d+)/(?P<be>\d+)/'
-    r'(?P<srv>\d+)/(?P<retries>\+?\d+)\s+'
-    # 0/67
-    r'(?P<queue_server>\d+)/(?P<queue_backend>\d+)\s+'
-    # {77.24.148.74}
-    r'({(?P<request_headers>.*)}\s+{(?P<response_headers>.*)}\s+|{(?P<headers>.*)}\s+|)'
-    # "GET /path/to/image HTTP/1.1"
+    r'(?P<http_Tq>-?\d+)/(?P<http_Tw>-?\d+)/(?P<http_Tc>-?\d+)/'
+    r'(?P<http_Tr>-?\d+)/(?P<http_Ta>\+?\d+)\s+'
+    # 200 83285 - HTTP log format for status code and bytes read
+    r'(?P<http_status_code>-?\d+)\s+(?P<http_bytes_read>\+?\d+)'
+    r')|('
+    # frontend backend/server1
+    r'(?P<tcp_frontend_name>.*)\s+(?P<tcp_backend_name>.*)/(?P<tcp_server_name>.*)\s+'
+    # 0/51536/1
+    r'(?P<tcp_Tw>-?\d+)/(?P<tcp_Tc>-?\d+)/(?P<tcp_Tt>\+?\d+)\s+'
+    # 259
+    r'(?P<tcp_bytes_read>\+?\d+))'
+    r')'
+    # - - ---- (http) and -- (tcp)
+    r'.*\s+'
+    r'(?P<actconn>\d+)\/(?P<feconn>\d+)\/(?P<beconn>\d+)\/(?P<srv_conn>\d+)\/(?P<retries>\+?\d+)'
+    # srv_queue/backend_queue
+    r'(\s+(?P<srv_queue>\d+)\/(?P<backend_queue>\d+))'
+    r'(\s+'
+    # # optional HTTP-only |-delimited list of request and response headers (probably not correct)
+    r'({(?P<captured_request_headers>.*)}\s+{(?P<captured_response_headers>.*)}\s+|{(?P<headers>.*)}\s+|\s+)?'
     r'"(?P<http_request>.*)"'
+    r')?'
     r'\Z'  # end of line
 )
 
@@ -48,10 +59,16 @@ HTTP_REQUEST_REGEX = re.compile(
 )
 
 
+class LineType(enum.Enum):
+    HTTP = 0
+    TCP = 1
+
+
 class Line(object):
     """For a precise and more detailed description of every field see:
     http://cbonte.github.io/haproxy-dconv/2.2/configuration.html#8.2.3
     """
+    log_type = None
 
     #: IP of the upstream server that made the connection to HAProxy.
     client_ip = None
@@ -61,8 +78,8 @@ class Line(object):
     # raw string from log line and its python datetime version
     raw_accept_date = None
     #: datetime object with the exact date when the connection to HAProxy was
-    #: made.
-    accept_date = None
+    #: made. It's called access_date/request_date depending on the log type.
+    accept_date = request_date = None
 
     #: HAProxy frontend that received the connection.
     frontend_name = None
@@ -84,7 +101,8 @@ class Line(object):
     #: HTTP response (``Tr`` in HAProxy documentation).
     time_wait_response = None
     #: Total time in milliseconds between accepting the HTTP request and
-    #: sending back the HTTP response (``Tt`` in HAProxy documentation).
+    #: sending back the HTTP response (``Tt`` or ``Ta`` in HAProxy
+    #: documentation depending on the log type).
     total_time = None
 
     #: HTTP status code returned to the client.
@@ -172,6 +190,57 @@ class Line(object):
                 return ip
         return self.client_ip
 
+    def _parse_http_fields(self, matches):
+        self.frontend_name = matches.group('http_frontend_name')
+        self.backend_name = matches.group('http_backend_name')
+        self.server_name = matches.group('http_server_name')
+
+        self.time_wait_request = int(matches.group('http_Tq'))
+        self.time_wait_queues = int(matches.group('http_Tw'))
+        self.time_connect_server = int(matches.group('http_Tc'))
+        self.time_wait_response = int(matches.group('http_Tr'))
+        self.total_time = matches.group('http_Ta')
+
+        self.status_code = matches.group('http_status_code')
+        self.bytes_read = matches.group('http_bytes_read')
+
+        self.captured_request_headers = matches.group('captured_request_headers')
+        self.captured_response_headers = matches.group('captured_response_headers')
+        if matches.group('headers') is not None:
+            self.captured_request_headers = matches.group('headers')
+
+        self.raw_http_request = matches.group('http_request')
+        if self.raw_http_request is not None:
+            self._parse_http_request()
+
+    def _parse_tcp_fields(self, matches):
+        self.frontend_name = matches.group('tcp_frontend_name')
+        self.backend_name = matches.group('tcp_backend_name')
+        self.server_name = matches.group('tcp_server_name')
+
+        self.time_wait_queues = int(matches.group('tcp_Tw'))
+        self.time_connect_server = int(matches.group('tcp_Tc'))
+        self.total_time = int(matches.group('tcp_Tt'))
+
+        self.bytes_read = matches.group('tcp_bytes_read')
+
+    def _parse_protocol_specific_fields(self, matches):
+        if matches.group("http_frontend_name") is not None:
+            self.log_type = LineType.HTTP
+            self._parse_http_fields(matches)
+        else:
+            self.log_type = LineType.TCP
+            self._parse_tcp_fields(matches)
+
+        self.connections_active = matches.group('actconn')
+        self.connections_frontend = matches.group('feconn')
+        self.connections_backend = matches.group('beconn')
+        self.connections_server = matches.group('srv_conn')
+        self.retries = matches.group('retries')
+
+        self.queue_server = int(matches.group('srv_queue'))
+        self.queue_backend = int(matches.group('backend_queue'))
+
     def _parse_line(self, line):
         matches = HAPROXY_LINE_REGEX.match(line)
         if matches is None:
@@ -182,37 +251,9 @@ class Line(object):
 
         self.raw_accept_date = matches.group('accept_date')
         self.accept_date = self._parse_accept_date()
+        self.request_date = self.accept_date
 
-        self.frontend_name = matches.group('frontend_name')
-        self.backend_name = matches.group('backend_name')
-        self.server_name = matches.group('server_name')
-
-        self.time_wait_request = int(matches.group('tq'))
-        self.time_wait_queues = int(matches.group('tw'))
-        self.time_connect_server = int(matches.group('tc'))
-        self.time_wait_response = int(matches.group('tr'))
-        self.total_time = matches.group('tt')
-
-        self.status_code = matches.group('status_code')
-        self.bytes_read = matches.group('bytes_read')
-
-        self.connections_active = matches.group('act')
-        self.connections_frontend = matches.group('fe')
-        self.connections_backend = matches.group('be')
-        self.connections_server = matches.group('srv')
-        self.retries = matches.group('retries')
-
-        self.queue_server = int(matches.group('queue_server'))
-        self.queue_backend = int(matches.group('queue_backend'))
-
-        self.captured_request_headers = matches.group('request_headers')
-        self.captured_response_headers = matches.group('response_headers')
-        if matches.group('headers') is not None:
-            self.captured_request_headers = matches.group('headers')
-
-        self.raw_http_request = matches.group('http_request')
-        self._parse_http_request()
-
+        self._parse_protocol_specific_fields(matches)
         return True
 
     def _parse_accept_date(self):
