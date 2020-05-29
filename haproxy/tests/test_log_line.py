@@ -201,3 +201,15 @@ def test_is_within_timeframe(http_line_factory, start, end, result):
     """Check that a line is within a given time frame."""
     line = http_line_factory(accept_date=NOW.strftime('%d/%b/%Y:%H:%M:%S.%f'))
     assert line.is_within_time_frame(start, end) is result
+
+
+def test_truncated_http_log_line(http_line_factory):
+    http_line_factory.line_format = http_line_factory.line_format[:-1]
+    method = "GET"
+    path = "/truncated_pat"
+    line = http_line_factory(http_request=f'{method} {path}')
+
+    assert line.is_valid
+    assert line.http_request_method == method
+    assert line.http_request_path == path
+    assert line.http_request_protocol is None

@@ -240,3 +240,15 @@ def test_http_request_regex(path):
     assert matches.group('method') == method
     assert matches.group('path') == path
     assert matches.group('protocol') == protocol
+
+
+def test_http_request_truncated_regex(http_line_factory):
+    """Test that long truncated log lines are properly parsed by the regex"""
+    method = 'GET'
+    path = '/truncated_pat'
+    http_request = f'{method} {path}'
+    line = http_line_factory(http_request=http_request)
+    # remove trailing double-quote to simulate log line truncation
+    matches = HAPROXY_LINE_REGEX.match(line.raw_line[:-1])
+
+    assert matches.group('http_request') == http_request

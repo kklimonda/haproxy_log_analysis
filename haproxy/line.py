@@ -47,7 +47,9 @@ HAPROXY_LINE_REGEX = re.compile(
     r'(\s+'
     # # optional HTTP-only |-delimited list of request and response headers (probably not correct)
     r'({(?P<captured_request_headers>.*)}\s+{(?P<captured_response_headers>.*)}\s+|{(?P<headers>.*)}\s+|\s+)?'
-    r'"(?P<http_request>.*)"'
+    # match the entire string until the (optional) closing double-quote to account for truncated
+    # log lines (e.g. lines sent to remote syslog server may be truncated to ~1024 characters).
+    r'"(?P<http_request>[^\"]+)"?'
     r')?'
     r'\Z'  # end of line
 )
