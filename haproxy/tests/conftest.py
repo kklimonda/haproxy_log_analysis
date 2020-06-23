@@ -98,3 +98,14 @@ def tcp_line_factory():
     )
     generator = LinesGenerator(line_format=raw_line)
     return generator
+
+@pytest.fixture
+def plain_line_factory():
+    # A variant of haproxy line without syslog and process data
+    raw_line = (
+        '{client_ip_and_port} '
+        '[{accept_date}] {tcp_server_names} {tcp_timers} {tcp_bytes_read} '
+        '-- {connections_and_retries} {queues}'
+    )
+    generator = LinesGenerator(line_format=raw_line)
+    return generator

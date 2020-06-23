@@ -213,3 +213,9 @@ def test_truncated_http_log_line(http_line_factory):
     assert line.http_request_method == method
     assert line.http_request_path == path
     assert line.http_request_protocol is None
+
+
+def test_not_syslog_line(plain_line_factory):
+    line = plain_line_factory()
+
+    assert line.is_valid

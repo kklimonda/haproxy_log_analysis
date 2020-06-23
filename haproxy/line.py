@@ -15,8 +15,8 @@ import re
 
 HAPROXY_LINE_REGEX = re.compile(
     # Dec  9 13:01:26 localhost haproxy[28029]:
-    # ignore the syslog prefix
-    r'\A.*\]:\s+'
+    # ignore the syslog prefix if present
+    r'(\A.*\]:\s+)?'
     # 127.0.0.1:39759
     r'(?P<client_ip>[a-fA-F\d+\.:]+):(?P<client_port>\d+)\s+'
     # [09/Dec/2013:12:59:46.633]
